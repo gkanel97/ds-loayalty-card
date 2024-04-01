@@ -19,16 +19,13 @@ def lambda_handler(event, context):
     dict: A response object with a statusCode and a body indicating the outcome of the operation.
     """
     
-    # Initialize the DynamoDB client
-    dynamodb = boto3.resource('dynamodb')
+    # Initialize the DynamoDB client and resource
+    dynamodb_client = boto3.client('dynamodb')
+    dynamodb_resource = boto3.resource('dynamodb')
     
-    # Specify the DynamoDB table names
-    purchase_table_name = 'Purchases'
+    # Connect to the 'User' table
     user_table_name = 'User'
-    points_table_name = 'Points'
-    purchase_table = dynamodb.Table(purchase_table_name)
-    user_table = dynamodb.Table(user_table_name)
-    points_table = dynamodb.Table(points_table_name)
+    user_table = dynamodb_resource.Table(user_table_name)
 
     # Extract group ID and user ID and purchase value from the event
     user_id = event.get('user_id')
@@ -64,42 +61,43 @@ def lambda_handler(event, context):
     # Extract additional purchase record data from the event
     store_id = event.get('store_id')
 
-    # Attempt to save the record to DynamoDB
+    # Attempt to save the new purchase and update the user's total points in an atomic transaction
     try:
-        response = purchase_table.put_item(
-            Item={
-                'group_id': group_id,
-                'purchase_id': purchase_id,
-                'purchase_date': purchase_date,
-                'purchase_value': purchase_value,
-                'store_id': store_id,
-                'user_id': user_id
-            }
+        response = dynamodb_client.transact_write_items(
+            TransactItems=[
+                {
+                    'Put': {
+                        'TableName': 'Purchases',
+                        'Item': {
+                            'group_id': {'N': str(group_id)},
+                            'purchase_id': {'S': purchase_id},
+                            'purchase_date': {'S': purchase_date},
+                            'purchase_value': {'N': str(purchase_value)},
+                            'store_id': {'N': str(store_id)},
+                            'user_id': {'S': user_id}
+                        }
+                    }
+                },
+                {
+                    'Update': {
+                        'TableName': 'Points',
+                        'Key': {
+                            'group_id': {'N': str(group_id)}
+                        },
+                        'UpdateExpression': 'SET total_points = total_points + :val',
+                        'ExpressionAttributeValues': {
+                            ':val': {'N': str(purchase_value)}
+                        },
+                        'ReturnValuesOnConditionCheckFailure': 'ALL_OLD'
+                    }
+                }
+            ]
         )
     except Exception as e:
         print(e)
         return {
             'statusCode': 500,
-            'body': json.dumps(f'Error: Failed to save purchase record: {e}')
-        }
-        
-    # Update the user's total points
-    try:
-        points_table.update_item(
-            Key={
-                'group_id': group_id
-            },
-            UpdateExpression="SET total_points = total_points + :val",
-            ExpressionAttributeValues={
-                ':val': int(purchase_value)
-            },
-            ReturnValues="UPDATED_NEW"
-        )
-    except Exception as e:
-        print(e)
-        return {
-            'statusCode': 500,
-            'body': json.dumps('Error: Failed to update group points.')
+            'body': json.dumps('Error: Failed to save purchase record and update group points.')
         }
 
     # Successfully saved the record
