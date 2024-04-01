@@ -4,9 +4,6 @@ from datetime import datetime
 from decimal import Decimal
 import uuid
 
-# Initialize the DynamoDB client
-dynamodb = boto3.resource('dynamodb')
-
 # TODO: add exception handler for unexisted store_id.
 def lambda_handler(event, context):
     """
@@ -22,11 +19,16 @@ def lambda_handler(event, context):
     dict: A response object with a statusCode and a body indicating the outcome of the operation.
     """
     
+    # Initialize the DynamoDB client
+    dynamodb = boto3.resource('dynamodb')
+    
     # Specify the DynamoDB table names
     purchase_table_name = 'Purchases'
     user_table_name = 'User'
+    points_table_name = 'Points'
     purchase_table = dynamodb.Table(purchase_table_name)
     user_table = dynamodb.Table(user_table_name)
+    points_table = dynamodb.Table(points_table_name)
 
     # Extract group ID and user ID and purchase value from the event
     user_id = event.get('user_id')
@@ -78,7 +80,26 @@ def lambda_handler(event, context):
         print(e)
         return {
             'statusCode': 500,
-            'body': json.dumps('Error: Failed to save purchase record.')
+            'body': json.dumps(f'Error: Failed to save purchase record: {e}')
+        }
+        
+    # Update the user's total points
+    try:
+        points_table.update_item(
+            Key={
+                'group_id': group_id
+            },
+            UpdateExpression="SET total_points = total_points + :val",
+            ExpressionAttributeValues={
+                ':val': int(purchase_value)
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+    except Exception as e:
+        print(e)
+        return {
+            'statusCode': 500,
+            'body': json.dumps('Error: Failed to update group points.')
         }
 
     # Successfully saved the record
