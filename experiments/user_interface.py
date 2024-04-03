@@ -2,8 +2,11 @@ import time
 import requests
 from uuid import uuid4
 
+def login_iam_user(username, password):
+    pass
+
 def ui_redeem_points(group_id, user_id, points, store_id):
-    url = 'https://uthdag66lrtkln5s6e2tekiyeq0larqh.lambda-url.eu-north-1.on.aws/points/redeem'
+    url = 'https://uthdag66lrtkln5s6e2tekiyeq0larqh.lambda-url.eu-north-1.on.aws/'
     payload = {
         'group_id': group_id,
         'user_id': user_id,
