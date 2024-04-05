@@ -1,10 +1,17 @@
 import json
 import boto3
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def lambda_handler(event, context):
+    
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table('Points')
-    group_id = event['group_id']
+    
+    group_id = int(event.get('group_id'))
+    
     response = table.query(
         KeyConditionExpression='group_id = :group_id',
         ExpressionAttributeValues={
