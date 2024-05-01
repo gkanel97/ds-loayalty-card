@@ -3,6 +3,10 @@ import boto3
 from datetime import datetime
 from decimal import Decimal
 import uuid
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # TODO: add exception handler for unexisted store_id.
 def lambda_handler(event, context):
@@ -28,9 +32,14 @@ def lambda_handler(event, context):
     user_table = dynamodb_resource.Table(user_table_name)
 
     # Extract group ID and user ID and purchase value from the event
-    user_id = event.get('user_id')
-    group_id = event.get('group_id')
-    purchase_value = Decimal(event.get('purchase_value', 0))
+    logger.info(event)
+    req_body = event
+    user_id = req_body.get('user_id')
+    group_id = req_body.get('group_id')
+    purchase_value = Decimal(req_body.get('purchase_value', 0))
+    purchase_id = req_body.get('purchase_id', str(uuid.uuid4()))
+    purchase_date = datetime.now().isoformat()
+    store_id = req_body.get('store_id')
 
     # Check if the purchase value is negative
     if purchase_value < 0:
@@ -45,7 +54,7 @@ def lambda_handler(event, context):
         if 'Item' not in user_response:
             return {
                 'statusCode': 404,
-                'body': json.dumps(f'Error: User with group_id {group_id} \t user_id {user_id} does not exist.')
+                'body': json.dumps({'status': 'error', 'msg': f'Error: User with group_id {group_id} \t user_id {user_id} does not exist.'})
             }
     except Exception as e:
         print(e)
@@ -53,13 +62,6 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps('Error: Failed to retrieve user information.')
         }
-
-    # Automatically generate purchase_id and purchase_date
-    purchase_id = str(uuid.uuid4())
-    purchase_date = datetime.now().isoformat()
-
-    # Extract additional purchase record data from the event
-    store_id = event.get('store_id')
 
     # Attempt to save the new purchase and update the user's total points in an atomic transaction
     try:
@@ -97,11 +99,11 @@ def lambda_handler(event, context):
         print(e)
         return {
             'statusCode': 500,
-            'body': json.dumps('Error: Failed to save purchase record and update group points.')
+            'body': json.dumps({'status': 'error', 'msg': 'Error: Failed to save purchase record and update group points.'})
         }
 
     # Successfully saved the record
     return {
         'statusCode': 200,
-        'body': json.dumps('Purchase record saved successfully.')
+        'body': json.dumps({'status': 'success', 'msg': 'Purchase record saved successfully.'})
     }

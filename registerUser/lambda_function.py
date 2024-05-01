@@ -1,5 +1,6 @@
 import boto3
 import json
+import logging
 
 
 cognito_client = boto3.client('cognito-idp',region_name='eu-north-1')
@@ -7,23 +8,18 @@ dynamodb = boto3.resource('dynamodb')
 
 USER_POOL_ID = 'eu-north-1_y9V0mjfKH'
 CLIENT_ID = '7gstac2jdrmg11ujvvsuqnlsc5'
-
-
 DYNAMODB_TABLE = 'User'
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def lambda_handler(event, context):
+    event_body = json.loads(event['body'])
     
-    try:
-        body = json.loads(event['body'])
-    except json.JSONDecodeError:
-        return {'statusCode': 400, 'body': json.dumps({'error': 'Invalid request body'})}
-        
-        
-    username = body['username']
-    password = body['password']
-    email = body['email']
-    groupId = body['groupId']
+    username = event_body['username']
+    password = event_body['password']
+    email = event_body['email']
+    groupId = event_body['groupId']
     
     if groupId is  None:
         return {
@@ -44,6 +40,7 @@ def lambda_handler(event, context):
             ]
         )
     except Exception as e:
+        logger.error(e)
         # DynamoDB write failed, delete the user from Cognito
         try:
             cognito_client.admin_delete_user(
@@ -53,6 +50,7 @@ def lambda_handler(event, context):
             return_msg = 'DynamoDB write failed, user deleted from Cognito.'
         except cognito_client.exceptions.ClientError as e:
             # Handle failure to delete user from Cognito
+            logger.error(e)
             return_msg = 'DynamoDB write failed, and unable to delete user from Cognito.'
 
         return {
@@ -63,7 +61,22 @@ def lambda_handler(event, context):
     
     sub_id = cognito_response['UserSub']
     
-    
+    # check the existence of gourpId in Points table
+    # TODO: Concurrency Conflicts may exist when creating new entry in the Points table
+    points_table = dynamodb.Table('Points')
+    response = points_table.get_item(Key={'group_id': groupId})
+    if 'Item' not in response:
+        try:
+            points_table.put_item(
+                Item={
+                    'group_id': groupId,
+                    'total_points': 0
+                }
+            )
+            logger.info(f"Created new points record for group {groupId}")
+        except Exception as e:
+            logger.error(e)
+            # If creation failed due to existence of the gourpId, just skip it
     table = dynamodb.Table(DYNAMODB_TABLE)
     try:
         dynamo_response = table.put_item(
@@ -75,10 +88,12 @@ def lambda_handler(event, context):
             }
         )
     except Exception as e:
+        logger.error(e)
         return {
             'statusCode': 500,
             'body': json.dumps({'error': 'Could not save user to DynamoDB.'})
         }
+    
     
 
     return {

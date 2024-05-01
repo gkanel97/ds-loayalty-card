@@ -44,11 +44,12 @@ def lambda_handler(event, context):
     dynamodb_client = boto3.client('dynamodb') 
 
     # Extract data from event
-    group_id = event['group_id']
-    user_id = event['user_id']
-    points_to_redeem = event['points']
-    store_id = event['store_id']
-    discount_id = event['discount_id'] if 'discount_id' in event else str(uuid4())
+    req_body = json.loads(event['body'])
+    group_id = req_body['group_id']
+    user_id = req_body['user_id']
+    points_to_redeem = req_body['points']
+    store_id = req_body['store_id']
+    discount_id = req_body['discount_id'] if 'discount_id' in req_body else str(uuid4())
 
     logger.info(f'Redemption {discount_id} | user {user_id} | group {group_id} | {points_to_redeem} points | processing')
 

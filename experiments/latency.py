@@ -42,7 +42,7 @@ if __name__ == '__main__':
     print('Measuring login latency...')
     url = BASE_URL + 'login'
     payload = { 'username': 'cafeuser', 'password': 'cafeUser!1' }
-    latencies['login'] = measure_latency(url, payload, num_requests=50)
+    latencies['login'] = measure_latency(url, payload, num_requests=500)
 
     # Measure purchase registration latency
     print('Measuring purchase registration latency...')
@@ -54,19 +54,19 @@ if __name__ == '__main__':
         'purchase_value': 10,
         'purchase_id': str(uuid4())
     }
-    latencies['registerPurchase'] = measure_latency(url, payload, num_requests=50)
+    latencies['registerPurchase'] = measure_latency(url, payload, num_requests=500)
 
     # Measure purchase retrieval latency
     print('Measuring purchase retrieval latency...')
     url = BASE_URL + 'purchases/retrieve'
     payload = { 'group_id': 6 }
-    latencies['retrievePurchases'] = measure_latency(url, payload, num_requests=50)
+    latencies['retrievePurchases'] = measure_latency(url, payload, num_requests=500)
     
     # Measure point retrieval latency
     print('Measuring point retrieval latency...')
     url = BASE_URL + 'points/retrieve'
     payload = { 'group_id': 6 }
-    latencies['retrievePoints'] = measure_latency(url, payload, num_requests=50)
+    latencies['retrievePoints'] = measure_latency(url, payload, num_requests=500)
 
     # Measure point redemption latency
     print('Measuring point redemption latency...')
@@ -77,7 +77,7 @@ if __name__ == '__main__':
         'points': 5,
         'store_id': 17
     }
-    latencies['redeemPoints'] = measure_latency(url, payload, num_requests=50)
+    latencies['redeemPoints'] = measure_latency(url, payload, num_requests=500)
 
     # Save latencies to file
     with open('measurements.json', 'w') as f:

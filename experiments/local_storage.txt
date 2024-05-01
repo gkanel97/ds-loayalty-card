@@ -1,0 +1,3 @@
+https://hzsswx6it1.execute-api.eu-north-1.amazonaws.com/prod/purchases/register {'group_id': 6, 'user_id': '30d16d7b-592d-486d-a958-38d6fc921508', 'store_id': 1, 'purchase_value': 10, 'purchase_id': 'ef1459fa-17a6-43e4-9afb-79da69641996'}
+https://hzsswx6it1.execute-api.eu-north-1.amazonaws.com/prod/purchases/register {'group_id': 6, 'user_id': '30d16d7b-592d-486d-a958-38d6fc921508', 'store_id': 1, 'purchase_value': 10, 'purchase_id': '79a80126-e9e6-4350-a25b-ac2dec2de42a'}
+https://hzsswx6it1.execute-api.eu-north-1.amazonaws.com/prod/purchases/register {"group_id": 6, "user_id": "30d16d7b-592d-486d-a958-38d6fc921508", "store_id": 1, "purchase_value": 10, "purchase_id": "d38f2af1-2b0c-442b-bd49-6ae69b8b0618"}
